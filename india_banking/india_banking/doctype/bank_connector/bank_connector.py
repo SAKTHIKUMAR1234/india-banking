@@ -428,10 +428,12 @@ class BankConnector(Document):
 		payload.address_details = get_bank_address_details(
 			payload.bank_account, validate=True
 		)
-		if not payload.swift_number or not payload.iban:
+		if (
+			not payload.swift_number or not payload.iban
+		) and summary.reference_doctype == "Payment Request":
 			payload.swift_number, payload.iban = frappe.db.get_value(
-				"Payment Request", payload.payment_request, ["swift_number", "iban"]
-			)
+				"Payment Request", summary.reference_name, ["swift_number", "iban"]
+			) or (None, None)
 
 		if not payload.party_name:
 			payload.party_name = (
@@ -443,7 +445,7 @@ class BankConnector(Document):
 				or summary.party
 			)
 
-		response = request.payloadt(url, headers=headers, data=json.dumps(payload))
+		response = request.post(url, headers=headers, data=json.dumps(payload))
 
 		# create api request log
 		create_api_log(response, self.action, payment_order.doctype, payment_order.name)
