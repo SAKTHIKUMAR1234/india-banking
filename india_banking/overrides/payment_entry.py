@@ -2,7 +2,6 @@ import frappe
 from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import (
 	get_accounting_dimensions,
 )
-from erpnext.accounts.party import get_party_bank_account
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
 from frappe.query_builder import DocType
@@ -11,6 +10,7 @@ from frappe.utils import get_url_to_form
 from india_banking.india_banking.doctype.party_bank_account_field_map.party_bank_account_field_map import (
 	get_party_bank_fields,
 )
+from india_banking.utils import get_party_bank_account
 
 
 @frappe.whitelist()
@@ -163,6 +163,7 @@ def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 	order_entry = pe_query_entry + re_query_entry
 
 	order_entry += existing_payment_entries
+	order_entry = [entry for entry in order_entry if entry]
 	if order_entry:
 		filters["name"] = ["not in", order_entry]
 	if "existing_payment_entries" in filters:
@@ -174,5 +175,4 @@ def get_payment_entry(doctype, txt, searchfield, start, page_len, filters):
 		)
 		or []
 	)
-
 	return payment_entry

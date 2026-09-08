@@ -9,12 +9,14 @@ from erpnext.accounts.doctype.payment_request.payment_request import (
 from erpnext.accounts.party import (
 	get_party_account,
 	get_party_account_currency,
-	get_party_bank_account,
 )
 from frappe import _, bold
 from frappe.utils import get_link_to_form, getdate
 
-from india_banking.utils import validate_party_bank_account_details
+from india_banking.utils import (
+	get_party_bank_account,
+	validate_party_bank_account_details,
+)
 
 
 class BankPaymentRequest(PaymentRequest):
