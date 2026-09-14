@@ -94,6 +94,7 @@ class BankConnector(Document):
 		bank_account = frappe.get_doc(
 			"Bank Account", payment_order.company_bank_account
 		)
+		self.backfill_party_name(payment_order)
 		payment_payload = frappe._dict()
 		payment_payload.doc = payment_order.as_dict(convert_dates_to_str=True)
 		payment_payload.doc.update(
@@ -110,6 +111,30 @@ class BankConnector(Document):
 		payment_payload.doc.otp = otp
 
 		return payment_payload
+
+	def backfill_party_name(self, payment_order):
+		missing = [row for row in payment_order.summary if not row.party_name]
+		if not missing:
+			return
+
+		parties_by_type = {}
+		for row in missing:
+			parties_by_type.setdefault(row.party_type, set()).add(row.party)
+
+		party_names = {}
+		for party_type, parties in parties_by_type.items():
+			field = get_party_field_name(party_type)
+			for name, party_name in frappe.get_all(
+				party_type,
+				filters={"name": ["in", list(parties)]},
+				fields=["name", field],
+				as_list=True,
+			):
+				party_names[(party_type, name)] = party_name
+
+		for row in missing:
+			row.party_name = party_names.get((row.party_type, row.party))
+			row.db_set("party_name", row.party_name, update_modified=False)
 
 	def get_response_details(self, response):
 		try:
