@@ -13,6 +13,7 @@ from india_banking.india_banking.doc_events.payment_order import make_payment_en
 from india_banking.india_banking.doctype.bank_connector.bank_connector import (
 	get_bank_balance,
 )
+from india_banking.utils import get_party_field_name
 
 
 class CustomPaymentOrder(PaymentOrder):
@@ -137,29 +138,24 @@ class CustomPaymentOrder(PaymentOrder):
 			payment.mode_of_transfer = mode_of_transfer.mode
 			summary_total += payment.amount
 
+			if not payment.party_name:
+				payment.party_name = frappe.get_value(
+					payment.party_type,
+					payment.party,
+					get_party_field_name(payment.party_type),
+				)
+
 		references_total = 0
 		for reference in self.references:
 			reference.party_name = frappe.get_value(
 				reference.party_type,
 				reference.party,
-				self.get_party_field_name(reference),
+				get_party_field_name(reference.party_type),
 			)
 			references_total += reference.amount
 
 		if summary_total != references_total:
 			frappe.throw(_("Summary isn't matching the references"))
-
-	def get_party_field_name(self, party):
-		if party.party_type == "Supplier":
-			return "supplier_name"
-		elif party.party_type == "Employee":
-			return "employee_name"
-		elif party.party_type == "Shareholder":
-			return "name"
-		elif party.party_type == "Customer":
-			return "customer_name"
-		else:
-			return "name"
 
 	def on_submit(self):
 		if self.payment_order_type in [
@@ -344,6 +340,11 @@ def get_party_summary(
 					party_bank,
 					company_bank,
 					default_mode_of_transfer,
+				),
+				"party_name": frappe.db.get_value(
+					summary_line_item["party_type"],
+					summary_line_item["party"],
+					get_party_field_name(summary_line_item["party_type"]),
 				),
 			}
 		)
